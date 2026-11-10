@@ -1,0 +1,22 @@
+diff --git a/app/discounts.py b/app/discounts.py
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/app/discounts.py
+@@ -0,0 +1,16 @@
++def compute_discount(plan, coupon_code):
++    """Return the discount fraction for a coupon on a plan."""
++    if coupon_code is None:
++        return 0.0
++    coupon = coupons.find_by_code(coupon_code)
++    if coupon is None or coupon.is_expired():
++        return 0.0
++    if coupon.plan_id is not None and coupon.plan_id != plan.id:
++        return 0.0
++    return min(coupon.percent_off, plan.max_discount)
++
++
++def apply_discount(amount, discount):
++    if discount < 0.0 or discount > 1.0:
++        raise ValueError("discount must be between 0 and 1")
++    return round(amount * (1.0 - discount), 2)

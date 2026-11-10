@@ -1,0 +1,17 @@
+diff --git a/app/auth.py b/app/auth.py
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/app/auth.py
+@@ -0,0 +1,11 @@
++import os
++
++API_KEY = "sk-live-9f2c4a7b1e5d8a0c3f6b9d2e7a1c4f8"
++
++
++def get_user_by_email(email):
++    conn = get_connection()
++    query = f"SELECT * FROM users WHERE email = '{email}'"
++    cursor = conn.cursor()
++    cursor.execute(query)
++    return cursor.fetchone()
