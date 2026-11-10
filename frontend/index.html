@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Code Review Agent</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --text:#e2e8f0; --muted:#94a3b8;
+         --accent:#38bdf8; --critical:#ef4444; --major:#f97316;
+         --minor:#eab308; --nit:#94a3b8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+         background:var(--bg); color:var(--text); }
+  header { padding:20px 28px; border-bottom:1px solid #334155; }
+  header h1 { margin:0; font-size:22px; }
+  header p { margin:6px 0 0; color:var(--muted); font-size:14px; }
+  main { max-width:960px; margin:0 auto; padding:24px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:14px 0 6px; }
+  textarea, input[type=text] { width:100%; background:var(--panel); color:var(--text);
+    border:1px solid #334155; border-radius:8px; padding:12px; font-size:14px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  textarea { min-height:220px; resize:vertical; }
+  button { margin-top:16px; background:var(--accent); color:#082f49; border:0;
+    border-radius:8px; padding:12px 22px; font-size:15px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .row { display:flex; gap:16px; }
+  .row > div { flex:1; }
+  #status { margin-top:14px; color:var(--muted); font-size:14px; }
+  .verdict { margin-top:20px; padding:14px 18px; border-radius:8px; font-size:16px; font-weight:600; }
+  .verdict.approve { background:#14532d; }
+  .verdict.request_changes { background:#7f1d1d; }
+  .verdict.comment { background:#713f12; }
+  .finding { background:var(--panel); border:1px solid #334155; border-radius:8px;
+    padding:14px 16px; margin-top:12px; }
+  .finding h3 { margin:0 0 4px; font-size:15px; }
+  .badge { display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase;
+    padding:2px 8px; border-radius:999px; margin-right:6px; color:#fff; }
+  .badge.critical { background:var(--critical); }
+  .badge.major { background:var(--major); }
+  .badge.minor { background:var(--minor); color:#422006; }
+  .badge.nit { background:var(--nit); color:#0f172a; }
+  .loc { color:var(--muted); font-size:13px; font-family:ui-monospace,Menlo,monospace; }
+  .finding p { margin:8px 0; font-size:14px; line-height:1.5; }
+  .finding pre { background:#0f172a; padding:10px 12px; border-radius:6px; overflow:auto;
+    font-size:13px; margin:8px 0 0; }
+  .finding .cat { color:var(--muted); font-size:12px; }
+  pre#md { white-space:pre-wrap; background:var(--panel); padding:16px; border-radius:8px;
+    border:1px solid #334155; font-size:13px; }
+  .tabs { margin-top:24px; }
+  .tabs button { background:transparent; color:var(--muted); border:1px solid #334155;
+    padding:8px 14px; margin-right:8px; }
+  .tabs button.active { color:var(--text); border-color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🤖 AI Code Review Agent</h1>
+  <p>Paste a unified diff — get a structured review with cited findings, severities and a verdict.
+     Runs on the local mock reviewer by default; point the server at OpenAI for real LLM reviews.</p>
+</header>
+<main>
+  <label for="diff">Unified diff</label>
+  <textarea id="diff" placeholder="diff --git a/app.py b/app.py&#10;--- a/app.py&#10;+++ b/app.py&#10;@@ -1,3 +1,4 @@&#10;+API_KEY = &quot;sk-live-...&quot;&#10; ..."></textarea>
+  <div class="row">
+    <div>
+      <label for="repo">Repo path for RAG context (optional)</label>
+      <input type="text" id="repo" placeholder="/path/to/repo">
+    </div>
+    <div>
+      <label for="pr">GitHub PR (optional, owner/repo#number)</label>
+      <input type="text" id="pr" placeholder="octocat/hello-world#42">
+    </div>
+  </div>
+  <button id="reviewBtn">Review diff</button>
+  <div id="status"></div>
+  <div id="result"></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let lastReport = null;
+
+$('reviewBtn').onclick = async () => {
+  const diff = $('diff').value.trim();
+  const repo_path = $('repo').value.trim() || null;
+  const pr = $('pr').value.trim() || null;
+  if (!diff && !pr) { $('status').textContent = 'Paste a diff or enter a PR reference.'; return; }
+  $('reviewBtn').disabled = true;
+  $('status').textContent = 'Reviewing…';
+  $('result').innerHTML = '';
+  try {
+    const res = await fetch('/reviews', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ diff, repo_path, pr }),
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || res.statusText); }
+    lastReport = await res.json();
+    render(lastReport, 'findings');
+    $('status').textContent = '';
+  } catch (err) {
+    $('status').textContent = 'Review failed: ' + err.message;
+  } finally { $('reviewBtn').disabled = false; }
+};
+
+function render(report, tab) {
+  const v = report.verdict;
+  const label = v === 'approve' ? '✅ Approve'
+    : v === 'request_changes' ? '🔴 Request changes' : '💬 Comment';
+  let html = `<div class="verdict ${v}">${label} — ${escapeHtml(report.summary)}</div>`;
+  html += `<div class="tabs">
+    <button class="${tab==='findings'?'active':''}" onclick="render(lastReport,'findings')">Findings (${report.findings.length})</button>
+    <button class="${tab==='markdown'?'active':''}" onclick="render(lastReport,'markdown')">Markdown report</button>
+  </div>`;
+  if (tab === 'markdown') {
+    html += `<pre id="md">${escapeHtml(report.markdown)}</pre>`;
+  } else if (!report.findings.length) {
+    html += `<p style="margin-top:16px">No issues found. 🎉</p>`;
+  } else {
+    for (const f of report.findings) {
+      const loc = f.end_line !== f.line ? `${f.file}:${f.line}-${f.end_line}` : `${f.file}:${f.line}`;
+      html += `<div class="finding">
+        <h3><span class="badge ${f.severity}">${f.severity}</span>${escapeHtml(f.title)}</h3>
+        <div class="loc">${escapeHtml(loc)}</div>
+        <p>${escapeHtml(f.message)}</p>
+        <div class="cat">Category: ${escapeHtml(f.category)}${f.rule ? ' · Rule: ' + escapeHtml(f.rule) : ''}</div>
+        ${f.suggestion ? `<pre>${escapeHtml(f.suggestion)}</pre>` : ''}
+      </div>`;
+    }
+  }
+  $('result').innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
