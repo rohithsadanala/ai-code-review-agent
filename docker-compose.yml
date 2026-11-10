@@ -1,0 +1,18 @@
+services:
+  review-agent:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Override in a local .env file (never committed):
+      #   CRA_LLM_PROVIDER=openai
+      #   OPENAI_API_KEY=...
+      #   GITHUB_TOKEN=...
+      CRA_LLM_PROVIDER: ${CRA_LLM_PROVIDER:-mock}
+      CRA_EMBEDDING_PROVIDER: ${CRA_EMBEDDING_PROVIDER:-fake}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    volumes:
+      - ./data:/app/data
+      # Mount a repo to review with RAG context (read-only):
+      # - /path/to/your/repo:/repos/target:ro

@@ -1,0 +1,10 @@
+# Optional extras — install only what you need.
+# Hugging Face embeddings + local LLM (needs a GPU or patience):
+sentence-transformers>=2.7
+torch>=2.2
+langchain-huggingface>=0.1
+transformers>=4.40
+# ChromaDB as an alternative vector store:
+chromadb>=0.5
+# DeepEval for LLM-based evaluation metrics:
+deepeval>=0.21
