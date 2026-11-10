@@ -1,0 +1,62 @@
+{
+  "cases": 4,
+  "mean_precision": 1.0,
+  "mean_recall": 1.0,
+  "mean_f1": 1.0,
+  "mean_false_positive_rate": 0.0,
+  "mean_citation_accuracy": 1.0,
+  "per_case": [
+    {
+      "name": "clean-code",
+      "expected": 0,
+      "reported": 0,
+      "matched": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0,
+      "citation_accuracy": 1.0,
+      "missed": [],
+      "extra": []
+    },
+    {
+      "name": "real-bug",
+      "expected": 2,
+      "reported": 2,
+      "matched": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0,
+      "citation_accuracy": 1.0,
+      "missed": [],
+      "extra": []
+    },
+    {
+      "name": "security-flaw",
+      "expected": 2,
+      "reported": 2,
+      "matched": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0,
+      "citation_accuracy": 1.0,
+      "missed": [],
+      "extra": []
+    },
+    {
+      "name": "style-issues",
+      "expected": 3,
+      "reported": 3,
+      "matched": 3,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0,
+      "citation_accuracy": 1.0,
+      "missed": [],
+      "extra": []
+    }
+  ]
+}
